@@ -129,28 +129,40 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-gradient-to-r from-red-600 to-red-400 p-8 rounded-2xl text-white shadow-lg relative overflow-hidden">
-                        <div class="relative z-10">
-                            <h4 class="text-lg font-bold mb-2 uppercase opacity-80">Peringatan Kehadiran</h4>
-                            <p class="text-4xl font-black">{{ $tidakHadir }} KARYAWAN</p>
-                            <p class="text-sm mt-2 font-medium">Segera tindak lanjuti karyawan yang belum absen.</p>
-                        </div>
-                        <i class="fas fa-exclamation-circle absolute -right-4 -bottom-4 text-9xl opacity-20"></i>
-                    </div>
-
-                    <div class="bg-gradient-to-r from-orange-500 to-yellow-400 p-8 rounded-2xl text-white shadow-lg relative overflow-hidden">
-                        <div class="relative z-10">
-                            <h4 class="text-lg font-bold mb-2 uppercase opacity-80">Target Harian</h4>
-                            <p class="text-4xl font-black">100%</p>
-                            <p class="text-sm mt-2 font-medium">Monitoring selesai pukul 23:59 WIB.</p>
-                        </div>
-                        <i class="fas fa-history absolute -right-4 -bottom-4 text-9xl opacity-20"></i>
-                    </div>
+               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <a href="/absensi?status_filter=tidak_hadir" class="block group">
+        <div class="bg-gradient-to-r from-red-600 to-red-400 p-8 rounded-2xl text-white shadow-lg relative overflow-hidden transition-all duration-300 group-hover:shadow-red-200 group-hover:scale-[1.02] active:scale-95 h-full">
+            <div class="relative z-10">
+                <h4 class="text-lg font-bold mb-2 uppercase opacity-80 tracking-tight">Peringatan Kehadiran</h4>
+                <p class="text-4xl font-black mb-2">{{ $tidakHadir }} KARYAWAN</p>
+                
+                <div class="flex items-center text-sm font-medium bg-white/20 w-fit px-3 py-1 rounded-full backdrop-blur-sm group-hover:bg-white/30 transition-colors">
+                    Segera tindak lanjuti yang belum absen 
+                    <i class="fas fa-arrow-right ml-2 animate-bounce-x"></i>
                 </div>
-            </main>
+            </div>
+            <i class="fas fa-exclamation-circle absolute -right-4 -bottom-4 text-9xl opacity-20 group-hover:rotate-12 transition-transform duration-500"></i>
         </div>
+    </a>
+
+    <div class="bg-gradient-to-r from-orange-500 to-yellow-400 p-8 rounded-2xl text-white shadow-lg relative overflow-hidden h-full">
+        <div class="relative z-10">
+            <h4 class="text-lg font-bold mb-2 uppercase opacity-80">Target Harian</h4>
+            <p class="text-4xl font-black">100%</p>
+            <p class="text-sm mt-2 font-medium">Monitoring selesai pukul 23:59 WIB.</p>
+        </div>
+        <i class="fas fa-history absolute -right-4 -bottom-4 text-9xl opacity-20"></i>
     </div>
+</div>
+
+{{-- Letakkan Style di bawah sini agar rapi --}}
+<style>
+    @keyframes bounce-x {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(5px); }
+    }
+    .animate-bounce-x { animation: bounce-x 1s infinite; }
+</style>
 
     <script>
         function updateClock() {
@@ -163,31 +175,77 @@
         setInterval(updateClock, 1000);
         updateClock(); // Jalankan langsung saat load
     </script>
-
-    <script>
-        const ctx = document.getElementById('attendanceChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: {!! json_encode($labels) !!},
-                datasets: [{
-                    label: 'Persentase Kehadiran',
-                    data: {!! json_encode($dataPersentase) !!},
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderColor: 'rgb(37, 99, 235)',
-                    borderWidth: 1,
-                    borderRadius: 8,
-                }]
+<script>
+    const ctx = document.getElementById('attendanceChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {!! json_encode($labels) !!},
+            datasets: [{
+                label: 'Persentase Kehadiran',
+                data: {!! json_encode($dataPersentase) !!},
+                backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                borderColor: 'rgb(37, 99, 235)',
+                borderWidth: 1,
+                borderRadius: 8,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    max: 110, // Ditingkatkan ke 110 agar garis 100 tidak menempel ke atas
+                    ticks: { 
+                        callback: value => value + "%",
+                        stepSize: 20
+                    },
+                    grid: {
+                        color: (context) => {
+                            if (context.tick.value === 100) {
+                                return 'rgba(239, 68, 68, 1)'; // Warna merah terang untuk garis 100%
+                            }
+                            return 'rgba(0, 0, 0, 0.1)';
+                        },
+                        lineWidth: (context) => {
+                            if (context.tick.value === 100) {
+                                return 3; // Garis target lebih tebal
+                            }
+                            return 1;
+                        }
+                    }
+                }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, max: 100, ticks: { callback: value => value + "%" } }
-                },
-                plugins: { legend: { display: false } }
+            plugins: { 
+                legend: { display: false },
+                // Menambahkan label teks "TARGET" di samping garis
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Kehadiran: ${context.raw}%`;
+                        }
+                    }
+                }
             }
-        });
-    </script>
+        },
+        // Plugin tambahan untuk menggambar teks "TARGET 100%" secara manual jika diinginkan
+        plugins: [{
+            id: 'targetLineLabel',
+            afterDraw: (chart) => {
+                const { ctx, scales: { y } } = chart;
+                const yPos = y.getPixelForValue(100);
+                if (yPos >= 0) {
+                    ctx.save();
+                    ctx.fillStyle = 'rgb(239, 68, 68)';
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.fillText('TARGET 100%', chart.width - 10, yPos - 5);
+                    ctx.restore();
+                }
+            }
+        }]
+    });
+</script>
 </body>
 </html>

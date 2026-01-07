@@ -10,24 +10,55 @@ use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
 {
-    public function index(Request $request)
-    {
-        $search = $request->input('search');
-        $startOfMonth = now()->startOfMonth();
-        $endOfMonth = now()->endOfMonth();
-        $dateRange = CarbonPeriod::create($startOfMonth, $endOfMonth);
+   public function index(Request $request)
+{
+    $startOfMonth = now()->startOfMonth();
+    $endOfMonth = now()->endOfMonth();
+    $today = now()->toDateString();
+    
+    // Default range adalah sebulan
+    $dateRange = CarbonPeriod::create($startOfMonth, $endOfMonth);
 
-        $employees = Employee::when($search, function ($query, $search) {
-                return $query->where('npk', 'like', "%{$search}%");
-            })
-            ->with(['attendances' => function($q) use ($startOfMonth, $endOfMonth) {
-                $q->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
-            }])
-            ->get();
+    $query = Employee::with(['attendances' => function($q) use ($startOfMonth, $endOfMonth) {
+        $q->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
+    }]);
 
-        return view('absensi.grid', compact('employees', 'dateRange', 'startOfMonth'));
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('npk', 'like', "%{$search}%")
+              ->orWhere('name', 'like', "%{$search}%");
+        });
     }
 
+    $employees = $query->get();
+
+    // JIKA FILTER "TIDAK HADIR" DIKLIK
+    if ($request->status_filter == 'tidak_hadir') {
+        // 1. Filter karyawannya (hanya yang tidak punya absen hari ini)
+        $employees = $employees->filter(function ($employee) use ($today) {
+            return !$employee->attendances->where('date', $today)->first();
+        });
+
+        // 2. Ubah dateRange agar tabel hanya nampilkan kolom HARI INI saja (biar "pure")
+        $dateRange = CarbonPeriod::create(now(), now());
+    }
+
+    return view('absensi.grid', compact('employees', 'dateRange', 'startOfMonth'));
+}
+public function store(Request $request)
+{
+    $request->validate([
+        'npk' => 'required|unique:employees,npk',
+        'name' => 'required',
+        'department' => 'required',
+        'title' => 'required',
+    ]);
+
+    Employee::create($request->all());
+
+    return redirect()->back()->with('success', 'Karyawan berhasil ditambahkan!');
+}
     public function AbsenMandiri(Request $request)
     {
         $request->validate([

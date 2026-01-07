@@ -12,6 +12,7 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout']);
 
+Route::post('/employees/store', [AttendanceController::class, 'store'])->name('employees.store');
 // 3. Route Absensi Mandiri (Bisa diakses tanpa login/publik via QR)
 Route::get('/absen-mandiri', function () { 
     return view('absensi.mandiri'); 

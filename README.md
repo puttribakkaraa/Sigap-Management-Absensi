@@ -25,7 +25,7 @@ Didesain khusus untuk layar smartphone dengan prinsip *Responsive Web Design*. M
 
 
 
-<img src="public/images/absensi.jpeg" width="300" alt="Absensi Mandiri Mobile">
+<img src="public/images/absensi.jpeg" width="700" alt="Absensi Mandiri Mobile">
 
 ### **3. Sistem Validasi & Notifikasi**
 

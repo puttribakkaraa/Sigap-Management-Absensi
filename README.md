@@ -67,7 +67,7 @@ Tabel monitoring bulanan yang mendetail, menyajikan status kehadiran dan jam mas
 
 ### **Instalasi Cepat**
 
-1. `git clone
+1. `git clone`
 2. `composer install`
 3. `cp .env.example .env`
 4. `php artisan migrate --seed`

@@ -31,15 +31,36 @@
             </div>
             
             <div class="flex items-center gap-2">
-                <form action="{{ route('absensi.index') }}" method="GET" id="perPageForm" class="flex gap-1">
+                <form action="{{ route('absensi.index') }}" method="GET" id="perPageForm" class="flex flex-wrap md:flex-nowrap gap-1">
+                    <select name="month" onchange="this.form.submit()" class="border border-gray-300 px-2 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        @for ($m = 1; $m <= 12; $m++)
+                            <option value="{{ $m }}" {{ (request('month') ?? date('n')) == $m ? 'selected' : '' }}>
+                                {{ date('F', mktime(0, 0, 0, $m, 1)) }}
+                            </option>
+                        @endfor
+                    </select>
+
+                    <select name="year" onchange="this.form.submit()" class="border border-gray-300 px-2 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        @php $currentYear = date('Y'); @endphp
+                        @for ($y = $currentYear - 2; $y <= $currentYear + 1; $y++)
+                            <option value="{{ $y }}" {{ (request('year') ?? $currentYear) == $y ? 'selected' : '' }}>
+                                {{ $y }}
+                            </option>
+                        @endfor
+                    </select>
+
                     <select name="per_page" onchange="this.form.submit()" class="border border-gray-300 px-2 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="10" {{ $perPage == 10 ? 'selected' : '' }}>10 baris</option>
                         <option value="25" {{ $perPage == 25 ? 'selected' : '' }}>25 baris</option>
                         <option value="50" {{ $perPage == 50 ? 'selected' : '' }}>50 baris</option>
                         <option value="100" {{ $perPage == 100 ? 'selected' : '' }}>100 baris</option>
                     </select>
+
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari NPK/Nama..." class="border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-bold">Cari</button>
+                    
+         <input type="hidden" name="start_summary" value="">
+    <input type="hidden" name="end_summary" value="">
                 </form>
 
                 <a href="{{ route('dashboard') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center">
@@ -126,8 +147,31 @@
             {{ $employees->links() }}
         </div>
 
-        <div class="mt-8 border border-gray-300 rounded-lg overflow-hidden max-w-2xl bg-white shadow-sm">
-            <div class="bg-gray-800 text-white px-4 py-2 text-xs font-bold uppercase tracking-wider">Ringkasan Kehadiran Hari Ini ({{ now()->format('d F Y') }})</div>
+        <div class="mt-8 border border-gray-300 rounded-lg overflow-hidden max-w-4xl bg-white shadow-sm">
+            <div class="bg-gray-800 text-white px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="text-xs font-bold uppercase tracking-wider">
+                    Ringkasan Kehadiran ({{ \Carbon\Carbon::parse($startDate)->format('d M') }} - {{ \Carbon\Carbon::parse($endDate)->format('d M Y') }})
+                </div>
+                
+                <form action="{{ route('absensi.index') }}" method="GET" class="flex items-center gap-2">
+                    <input type="hidden" name="search" value="{{ request('search') }}">
+                    <input type="hidden" name="per_page" value="{{ $perPage }}">
+                    <input type="hidden" name="month" value="{{ request('month') }}">
+                    <input type="hidden" name="year" value="{{ request('year') }}">
+                    
+                    <div class="flex items-center gap-1">
+                        <input type="date" name="start_summary" value="{{ $startDate }}" 
+                               class="bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 text-[10px] focus:outline-none">
+                        <span class="text-[10px]">s/d</span>
+                        <input type="date" name="end_summary" value="{{ $endDate }}" 
+                               class="bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 text-[10px] focus:outline-none">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-[10px] font-bold transition">
+                            Filter
+                        </button>
+                    </div>
+                </form>
+            </div>
+
             <table class="w-full text-xs">
                 <thead class="bg-gray-100 border-b border-gray-300">
                     <tr class="text-center uppercase font-semibold">
@@ -138,13 +182,13 @@
                         <th class="px-4 py-2 text-red-600">X Alpa</th>
                     </tr>
                 </thead>
-                <tbody class="text-center font-bold text-lg">
+                <tbody class="text-center font-bold text-xl">
                     <tr>
-                        <td class="px-4 py-3 border-r border-gray-200 bg-emerald-50/50">{{ $stats['hadir'] }}</td>
-                        <td class="px-4 py-3 border-r border-gray-200 bg-blue-50/50">{{ $stats['sakit'] }}</td>
-                        <td class="px-4 py-3 border-r border-gray-200 bg-orange-50/50">{{ $stats['izin'] }}</td>
-                        <td class="px-4 py-3 border-r border-gray-200 bg-purple-50/50">{{ $stats['cuti'] }}</td>
-                        <td class="px-4 py-3 bg-red-50/50 text-red-600">{{ $stats['alpa'] }}</td>
+                        <td class="px-4 py-4 border-r border-gray-200 bg-emerald-50/50 text-emerald-700">{{ $stats['hadir'] }}</td>
+                        <td class="px-4 py-4 border-r border-gray-200 bg-blue-50/50 text-blue-700">{{ $stats['sakit'] }}</td>
+                        <td class="px-4 py-4 border-r border-gray-200 bg-orange-50/50 text-orange-700">{{ $stats['izin'] }}</td>
+                        <td class="px-4 py-4 border-r border-gray-200 bg-purple-50/50 text-purple-700">{{ $stats['cuti'] }}</td>
+                        <td class="px-4 py-4 bg-red-50/50 text-red-600">{{ $stats['alpa'] }}</td>
                     </tr>
                 </tbody>
             </table>

@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="   width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Absensi Sigap Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -42,11 +42,11 @@
             </a>
             </nav>
             <form action="/logout" method="POST" class="px-6 py-4 mt-auto">
-    @csrf
-    <button type="submit" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-2 rounded-lg transition flex items-center justify-center">
-        <i class="fas fa-sign-out-alt mr-2"></i> Keluar
-    </button>
-</form>
+                @csrf
+                <button type="submit" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-2 rounded-lg transition flex items-center justify-center">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Keluar
+                </button>
+            </form>
             <div class="p-6 border-t bg-gray-50">
                 <div class="flex items-center">
                     <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-md">
@@ -94,7 +94,6 @@
                             <div class="bg-blue-100 text-blue-600 p-3 rounded-xl"><i class="fas fa-users text-xl"></i></div>
                         </div>
                     </div>
-
                     <div class="bg-white rounded-2xl shadow-sm p-6 border-b-4 border-green-500">
                         <div class="flex justify-between items-start">
                             <div>
@@ -104,7 +103,6 @@
                             <div class="bg-green-100 text-green-600 p-3 rounded-xl"><i class="fas fa-check-circle text-xl"></i></div>
                         </div>
                     </div>
-
                     <div class="bg-white rounded-2xl shadow-sm p-6 border-b-4 border-red-500">
                         <div class="flex justify-between items-start">
                             <div>
@@ -114,7 +112,6 @@
                             <div class="bg-red-100 text-red-600 p-3 rounded-xl"><i class="fas fa-clock text-xl"></i></div>
                         </div>
                     </div>
-
                     <div class="bg-white rounded-2xl shadow-sm p-6 border-b-4 border-purple-500">
                         <div class="flex justify-between items-start">
                             <div>
@@ -136,33 +133,46 @@
                     </div>
                 </div>
 
-               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <a href="/absensi?status_filter=tidak_hadir" class="block group">
-        <div class="bg-gradient-to-r from-red-600 to-red-400 p-8 rounded-2xl text-white shadow-lg relative overflow-hidden transition-all duration-300 group-hover:shadow-red-200 group-hover:scale-[1.02] active:scale-95 h-full">
+                <div class="bg-white p-6 rounded-2xl shadow-sm mb-8 border">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-gray-700 uppercase tracking-tight">Monthly Performance Trends ({{ now()->year }})</h3>
+                        <span class="text-[10px] bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full font-bold uppercase">Tren Tahunan</span>
+                    </div>
+                    <div class="h-72">
+                        <canvas id="monthlyTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8"> 
+    <a href="/absensi?status_filter=tidak_hadir" class="group block h-full">
+        <div class="bg-gradient-to-br from-red-600 to-red-500 p-8 rounded-3xl text-white shadow-lg relative overflow-hidden transition-all duration-300 group-hover:shadow-red-200 group-hover:-translate-y-1 h-full min-h-[180px] flex flex-col justify-center border-b-8 border-red-800/20">
             <div class="relative z-10">
-                <h4 class="text-lg font-bold mb-2 uppercase opacity-80 tracking-tight">Peringatan Kehadiran</h4>
-                <p class="text-4xl font-black mb-2">{{ $tidakHadir }} KARYAWAN</p>
-                
-                <div class="flex items-center text-sm font-medium bg-white/20 w-fit px-3 py-1 rounded-full backdrop-blur-sm group-hover:bg-white/30 transition-colors">
-                    Segera tindak lanjuti yang belum absen 
-                    <i class="fas fa-arrow-right ml-2 animate-bounce-x"></i>
+                <h4 class="text-xs font-bold uppercase opacity-80 mb-2 tracking-widest">Peringatan Hari Ini</h4>
+                <p class="text-4xl font-black mb-3">{{ $tidakHadir }} KARYAWAN</p>
+                <div class="inline-flex items-center text-[11px] font-bold bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm group-hover:bg-white/30 transition-colors">
+                    Lihat Siapa Saja <i class="fas fa-arrow-right ml-2 animate-bounce-x"></i>
                 </div>
             </div>
-            <i class="fas fa-exclamation-circle absolute -right-4 -bottom-4 text-9xl opacity-20 group-hover:rotate-12 transition-transform duration-500"></i>
+            <i class="fas fa-exclamation-triangle absolute -right-6 -bottom-6 text-[12rem] opacity-10 group-hover:rotate-12 transition-transform duration-700"></i>
         </div>
     </a>
 
-    <div class="bg-gradient-to-r from-orange-500 to-yellow-400 p-8 rounded-2xl text-white shadow-lg relative overflow-hidden h-full">
+    <div class="bg-gradient-to-br from-blue-600 to-blue-400 p-8 rounded-3xl text-white shadow-lg relative overflow-hidden h-full min-h-[180px] flex flex-col justify-center border-b-8 border-blue-800/20">
         <div class="relative z-10">
-            <h4 class="text-lg font-bold mb-2 uppercase opacity-80">Target Harian</h4>
-            <p class="text-4xl font-black">100%</p>
-            <p class="text-sm mt-2 font-medium">Monitoring selesai pukul 23:59 WIB.</p>
+            <h4 class="text-xs font-bold uppercase opacity-80 mb-2 tracking-widest text-blue-50">Target Kehadiran</h4>
+            <p class="text-5xl font-black">100%</p>
+            <p class="text-xs mt-3 font-medium bg-black/10 w-fit px-3 py-1 rounded-lg backdrop-blur-sm">
+                Monitoring Aktif - {{ now()->format('F Y') }}
+            </p>
         </div>
-        <i class="fas fa-history absolute -right-4 -bottom-4 text-9xl opacity-20"></i>
+        <i class="fas fa-bullseye absolute -right-6 -bottom-6 text-[12rem] opacity-10"></i>
     </div>
 </div>
+                
+            </main>
+        </div>
+    </div>
 
-{{-- Letakkan Style di bawah sini agar rapi --}}
 <style>
     @keyframes bounce-x {
         0%, 100% { transform: translateX(0); }
@@ -171,30 +181,39 @@
     .animate-bounce-x { animation: bounce-x 1s infinite; }
 </style>
 
-    <script>
-        function updateClock() {
-            const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            document.getElementById('realtime-clock').textContent = `${hours}:${minutes}:${seconds}`;
-        }
-        setInterval(updateClock, 1000);
-        updateClock(); // Jalankan langsung saat load
-    </script>
 <script>
+    function updateClock() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        document.getElementById('realtime-clock').textContent = `${hours}:${minutes}:${seconds}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+</script>
+
+<script>
+    // --- CHART 1: ATTENDANCE BAR CHART (SEKARANG MURNI HARIAN) ---
     const ctx = document.getElementById('attendanceChart').getContext('2d');
+    const labels = {!! json_encode($labels) !!};
+    const dataValues = {!! json_encode($dataPersentase) !!};
+    
+    // Warna seragam untuk semua batang harian
+    const backgroundColors = 'rgba(59, 130, 246, 0.8)';
+    const borderColors = 'rgb(37, 99, 235)';
+
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: {!! json_encode($labels) !!},
+            labels: labels,
             datasets: [{
                 label: 'Persentase Kehadiran',
-                data: {!! json_encode($dataPersentase) !!},
-                backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                borderColor: 'rgb(37, 99, 235)',
+                data: dataValues,
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
                 borderWidth: 1,
-                borderRadius: 8,
+                borderRadius: 5,
             }]
         },
         options: {
@@ -203,30 +222,16 @@
             scales: {
                 y: { 
                     beginAtZero: true, 
-                    max: 110, // Ditingkatkan ke 110 agar garis 100 tidak menempel ke atas
-                    ticks: { 
-                        callback: value => value + "%",
-                        stepSize: 20
-                    },
+                    max: 110,
+                    ticks: { callback: value => value + "%", stepSize: 20 },
                     grid: {
-                        color: (context) => {
-                            if (context.tick.value === 100) {
-                                return 'rgba(239, 68, 68, 1)'; // Warna merah terang untuk garis 100%
-                            }
-                            return 'rgba(0, 0, 0, 0.1)';
-                        },
-                        lineWidth: (context) => {
-                            if (context.tick.value === 100) {
-                                return 3; // Garis target lebih tebal
-                            }
-                            return 1;
-                        }
+                        color: (context) => context.tick.value === 100 ? 'rgba(239, 68, 68, 1)' : 'rgba(0, 0, 0, 0.1)',
+                        lineWidth: (context) => context.tick.value === 100 ? 3 : 1
                     }
                 }
             },
-            plugins: { 
+            plugins: {
                 legend: { display: false },
-                // Menambahkan label teks "TARGET" di samping garis
                 tooltip: {
                     callbacks: {
                         label: function(context) {
@@ -236,7 +241,6 @@
                 }
             }
         },
-        // Plugin tambahan untuk menggambar teks "TARGET 100%" secara manual jika diinginkan
         plugins: [{
             id: 'targetLineLabel',
             afterDraw: (chart) => {
@@ -248,6 +252,58 @@
                     ctx.font = 'bold 10px sans-serif';
                     ctx.textAlign = 'right';
                     ctx.fillText('TARGET 100%', chart.width - 10, yPos - 5);
+                    ctx.restore();
+                }
+            }
+        }]
+    });
+
+    // --- CHART 2: MONTHLY TREND LINE CHART ---
+    const trendCtx = document.getElementById('monthlyTrendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: {!! json_encode($bulanLabels) !!},
+            datasets: [{
+                label: 'Rata-rata Kehadiran',
+                data: {!! json_encode($trenBulanan) !!},
+                borderColor: 'rgb(16, 185, 129)',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 110,
+                    ticks: { callback: value => value + "%" },
+                    grid: {
+                        color: (context) => context.tick.value === 100 ? 'rgba(239, 68, 68, 0.5)' : 'rgba(0, 0, 0, 0.05)',
+                        lineWidth: (context) => context.tick.value === 100 ? 2 : 1
+                    }
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        },
+        plugins: [{
+            id: 'targetTrendLabel',
+            afterDraw: (chart) => {
+                const { ctx, scales: { y } } = chart;
+                const yPos = y.getPixelForValue(100);
+                if (yPos >= 0) {
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.6)';
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.fillText('BENCHMARK 100%', chart.width - 10, yPos - 5);
                     ctx.restore();
                 }
             }

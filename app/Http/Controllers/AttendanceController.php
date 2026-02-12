@@ -19,60 +19,79 @@ class AttendanceController extends Controller
         return view('absensi.report');
     }
 
-   public function index(Request $request)
-{
-    $startOfMonth = now()->startOfMonth();
-    $endOfMonth = now()->endOfMonth();
-    $today = now()->toDateString();
-    
-    // Ambil jumlah per halaman dari dropdown, default 10
-    $perPage = $request->input('per_page', 10);
-    
-    $dateRange = \Carbon\CarbonPeriod::create($startOfMonth, $endOfMonth);
+public function index(Request $request)
+    {
+        // 1. Ambil input bulan dan tahun
+        $month = $request->input('month', date('n'));
+        $year = $request->input('year', date('Y'));
+        $today = now()->toDateString();
 
-    $query = Employee::with(['attendances' => function($q) use ($startOfMonth, $endOfMonth) {
-        $q->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
-    }]);
+        // 2. Set rentang tanggal bulan tersebut
+        $startOfMonth = \Carbon\Carbon::createFromDate($year, $month, 1)->startOfMonth();
+        $endOfMonth = \Carbon\Carbon::createFromDate($year, $month, 1)->endOfMonth();
+        
+        // 3. Logika Ringkasan Otomatis
+        $startDate = $request->input('start_summary');
+        $endDate = $request->input('end_summary');
 
-    if ($request->filled('search')) {
-        $search = $request->search;
-        $query->where(function($q) use ($search) {
-            $q->where('npk', 'like', "%{$search}%")
-              ->orWhere('name', 'like', "%{$search}%");
-        });
-    }
-
-    // Filter tidak hadir jika dipilih
-    if ($request->status_filter == 'tidak_hadir') {
-        $query->whereDoesntHave('attendances', function($q) use ($today) {
-            $q->where('date', $today);
-        });
-        $dateRange = \Carbon\CarbonPeriod::create(now(), now());
-    }
-
-    // --- LOGIKA HITUNG STATS (Dihitung dari semua data untuk akurasi dashboard) ---
-    $allEmployees = Employee::with(['attendances' => function($q) use ($today) {
-        $q->where('date', $today);
-    }])->get();
-
-    $stats = ['hadir' => 0, 'sakit' => 0, 'izin' => 0, 'cuti' => 0, 'alpa' => 0];
-    foreach ($allEmployees as $emp) {
-        $atd = $emp->attendances->first();
-        if ($atd) {
-            $status = strtolower($atd->status);
-            if (isset($stats[$status])) $stats[$status]++;
-        } else {
-            $stats['alpa']++;
+        if (!$startDate || !$endDate) {
+            $startDate = $startOfMonth->toDateString();
+            $endDate = $endOfMonth->toDateString();
         }
+
+        $perPage = $request->input('per_page', 10); 
+        $dateRange = \Carbon\CarbonPeriod::create($startOfMonth, $endOfMonth);
+
+        // 4. Query Utama
+        $query = Employee::with(['attendances' => function($q) use ($startOfMonth, $endOfMonth) {
+            $q->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
+        }]);
+
+        // --- FOKUS UTAMA: FILTER TIDAK HADIR ---
+        if ($request->status_filter == 'tidak_hadir') {
+            $query->whereDoesntHave('attendances', function($q) use ($today) {
+                $q->where('date', $today);
+            });
+        }
+
+        // Search NPK/Nama
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('npk', 'like', "%{$search}%")
+                  ->orWhere('name', 'like', "%{$search}%");
+            });
+        }
+
+        // --- HITUNG STATS RINGKASAN ---
+        $allEmployees = Employee::with(['attendances' => function($q) use ($startDate, $endDate) {
+            $q->whereBetween('date', [$startDate, $endDate]);
+        }])->get();
+
+        $stats = ['hadir' => 0, 'sakit' => 0, 'izin' => 0, 'cuti' => 0, 'alpa' => 0];
+        foreach ($allEmployees as $emp) {
+            foreach ($emp->attendances as $atd) {
+                $status = strtolower($atd->status);
+                if (isset($stats[$status])) $stats[$status]++;
+            }
+            $period = \Carbon\CarbonPeriod::create($startDate, $endDate);
+            foreach ($period as $date) {
+                if (!$date->isSunday() && $date->lte(now())) {
+                    $exists = $emp->attendances->where('date', $date->format('Y-m-d'))->first();
+                    if (!$exists) { $stats['alpa']++; }
+                }
+            }
+        }
+
+        $employees = $query->paginate($perPage)->withQueryString();
+
+        return view('absensi.grid', compact(
+            'employees', 'dateRange', 'startOfMonth', 'stats', 'perPage', 'startDate', 'endDate', 'month', 'year'
+        ));
     }
 
-    // Ambil data dengan Pagination
-    $employees = $query->paginate($perPage)->withQueryString();
-
-    return view('absensi.grid', compact('employees', 'dateRange', 'startOfMonth', 'stats', 'perPage'));
-}
-    
-
+    // Fungsi lain (export, store, dashboard, dll) tetap sama seperti sebelumnya...
+   
     public function export(Request $request)
     {
         $start = $request->start_date;
@@ -168,31 +187,96 @@ if ($format == 'excel') {
         'jam' => $now->format('H:i')
     ]);
 }
-    public function dashboard()
-    {
-        $totalKaryawan = Employee::count();
-        $startOfMonth = now()->startOfMonth();
-        $endOfMonth = now()->endOfMonth();
-        $dateRange = CarbonPeriod::create($startOfMonth, $endOfMonth);
-
-        $labels = [];
-        $dataPersentase = [];
-
-        foreach ($dateRange as $date) {
-            $tanggal = $date->format('Y-m-d');
-            $labels[] = $date->format('d');
-            $jumlahInput = Attendance::where('date', $tanggal)->count();
-            $persentase = $totalKaryawan > 0 ? ($jumlahInput / $totalKaryawan) * 100 : 0;
-            $dataPersentase[] = round($persentase, 1);
+   public function dashboard()
+{
+    $totalKaryawan = Employee::count();
+    $now = now();
+    $currentYear = $now->year;
+    
+    // --- 1. LOGIKA BULAN LALU (Rata-rata Hari Kerja) ---
+    $lastMonth = $now->copy()->subMonth();
+    $startOfLastMonth = $lastMonth->copy()->startOfMonth();
+    $endOfLastMonth = $lastMonth->copy()->endOfMonth();
+    
+    $totalAttendanceLastMonth = Attendance::whereBetween('date', [
+        $startOfLastMonth->toDateString(), 
+        $endOfLastMonth->toDateString()
+    ])->where('status', 'Hadir')->count();
+    
+    // Hitung hanya hari kerja (Senin-Jumat) bulan lalu
+    $workingDaysLastMonth = 0;
+    $periodLastMonth = \Carbon\CarbonPeriod::create($startOfLastMonth, $endOfLastMonth);
+    foreach ($periodLastMonth as $date) {
+        if ($date->isWeekday()) { // isWeekday() mengecek Senin-Jumat
+            $workingDaysLastMonth++;
         }
+    }
+    
+    $dividerLastMonth = ($totalKaryawan * $workingDaysLastMonth);
+    $persenBulanLalu = $dividerLastMonth > 0 ? ($totalAttendanceLastMonth / $dividerLastMonth) * 100 : 0;
+    $namaBulanLalu = $lastMonth->format('F');
 
-        $hadirHariIni = Attendance::where('date', now()->toDateString())->count();
-        $tidakHadir = $totalKaryawan - $hadirHariIni;
-        $persentaseHadir = $totalKaryawan > 0 ? ($hadirHariIni / $totalKaryawan) * 100 : 0;
+    // --- 2. LOGIKA BULAN BERJALAN (Harian) ---
+    $startOfMonth = $now->copy()->startOfMonth();
+    $endOfMonth = $now->copy()->endOfMonth();
+    $dateRange = \Carbon\CarbonPeriod::create($startOfMonth, $endOfMonth);
 
-        return view('absensi.dashboard', compact('totalKaryawan', 'hadirHariIni', 'tidakHadir', 'persentaseHadir', 'labels', 'dataPersentase'));
+    $labels = [];
+    $dataPersentase = [];
+
+    foreach ($dateRange as $date) {
+        $tanggal = $date->format('Y-m-d');
+        $labels[] = $date->format('d'); 
+        
+        // Data harian tetap dihitung berdasarkan total karyawan hari itu
+        $jumlahInput = Attendance::where('date', $tanggal)->where('status', 'Hadir')->count();
+        $persentase = $totalKaryawan > 0 ? ($jumlahInput / $totalKaryawan) * 100 : 0;
+        $dataPersentase[] = round($persentase, 1);
     }
 
+    // --- 3. LOGIKA TREN PERFORMA BULANAN (Hanya Hari Kerja) ---
+    $bulanLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    $trenBulanan = [];
+
+    for ($m = 1; $m <= 12; $m++) {
+        if ($m > $now->month) {
+            $trenBulanan[] = null;
+            continue;
+        }
+
+        $dateObj = \Carbon\Carbon::create($currentYear, $m, 1);
+        $start = $dateObj->copy()->startOfMonth();
+        $end = $dateObj->copy()->endOfMonth();
+
+        // Hitung total hadir hanya di bulan tersebut
+        $totalAbsenBulan = Attendance::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                            ->where('status', 'Hadir')
+                            ->count();
+
+        // Hitung jumlah hari kerja (Senin-Jumat) dalam bulan tersebut
+        $workingDays = 0;
+        $period = \Carbon\CarbonPeriod::create($start, $end);
+        foreach ($period as $dt) {
+            if ($dt->isWeekday()) {
+                $workingDays++;
+            }
+        }
+        
+        $pembagi = ($totalKaryawan * $workingDays);
+        $rataRataBulan = $pembagi > 0 ? ($totalAbsenBulan / $pembagi) * 100 : 0;
+        $trenBulanan[] = round($rataRataBulan, 1);
+    }
+
+    $hadirHariIni = Attendance::where('date', $now->toDateString())->where('status', 'Hadir')->count();
+    $tidakHadir = $totalKaryawan - $hadirHariIni;
+    $persentaseHadir = $totalKaryawan > 0 ? ($hadirHariIni / $totalKaryawan) * 100 : 0;
+
+    return view('absensi.dashboard', compact(
+        'totalKaryawan', 'hadirHariIni', 'tidakHadir', 'persentaseHadir', 
+        'labels', 'dataPersentase', 'persenBulanLalu', 'namaBulanLalu',
+        'bulanLabels', 'trenBulanan'
+    ));
+}
     public function scan(Request $request)
     {
         $employee = Employee::where('npk', $request->npk)->first();
